@@ -964,6 +964,7 @@ section:not(.hero, .address-and-contact, .listings-item) .sk-container h2,
 
     .business-hours .sk-chipset {
         margin: 0;
+        overflow: hidden;
     }
 
     .business-hours h2 {
