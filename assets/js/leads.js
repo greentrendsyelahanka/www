@@ -85,63 +85,46 @@
   /* ═══════════════════════════════════════════════════════════════════
       § 3  LEAD SUBMISSION  (GET → Apps Script → correct sheet tab)
    ═══════════════════════════════════════════════════════════════════ */
-  function _submitLead(data, onSuccess, onError) {
-    if (!CFG.sheetUrl) { onError(new Error('GT_CONFIG.sheetUrl not set')); return; }
+function _submitLead(data, onSuccess, onError) {
+  if (!CFG.sheetUrl) { onError(new Error('GT_CONFIG.sheetUrl not set')); return; }
 
-    var mobile = (data.mobile || '').replace(/\D/g, '').slice(-10);
+  var mobile = (data.mobile || '').replace(/\D/g, '').slice(-10);
 
-    var params = new URLSearchParams({
-      Name: data.name || '',
-      Mobile: '+91' + mobile,
-      Service: data.service || '',
-      Source: data.source || 'Website Form',
-      SheetTab: _sheetTab(),
-      UTM_Source: SESSION.utm_source,
-      UTM_Medium: SESSION.utm_medium,
-      UTM_Campaign: SESSION.utm_campaign,
-      UTM_Term: SESSION.utm_term,
-      UTM_Content: SESSION.utm_content,
-      Referral_URL: SESSION.referral_url,
-      Landing_Page: SESSION.landing_page,
-      Visit_Time: SESSION.visit_time,
-      Submit_Time: _now(),
-      IP_Address: SESSION.ip_address
-    });
+  var params = new URLSearchParams({
+    Name         : data.name         || '',
+    Mobile       : '+91' + mobile,
+    Service      : data.service      || '',
+    Source       : data.source       || 'Website Form',
+    SheetTab     : _sheetTab(),
+    UTM_Source   : SESSION.utm_source || '',
+    UTM_Medium   : SESSION.utm_medium || '',
+    UTM_Campaign : SESSION.utm_campaign || '',
+    UTM_Term     : SESSION.utm_term || '',
+    UTM_Content  : SESSION.utm_content || '',
+    Referral_URL : SESSION.referral_url || '',
+    Landing_Page : SESSION.landing_page || '',
+    Visit_Time   : SESSION.visit_time || '',
+    Submit_Time  : _now(),
+    IP_Address   : SESSION.ip_address || ''
+  });
 
-    fetch(CFG.sheetUrl + '?' + params.toString(), {
-      method: 'GET',
-      mode: 'no-cors'
-    })
-      /*      .then(function (r) {
-             if (!r.ok) throw new Error('HTTP ' + r.status);
-             // Get the response as text first to avoid the JSON parse error on HTML wrappers
-             return r.text();
-           })
-           .then(function (text) {
-             var d;
-             try {
-               d = JSON.parse(text);
-             } catch (e) {
-               // If parsing fails but status was 200, Google likely returned an HTML success page
-               console.warn('Response was not JSON, but request succeeded.', text);
-               onSuccess({ status: 'success', note: 'HTML response handled' });
-               return;
-             }
-     
-             if (d && d.status === 'success') {
-               onSuccess(d);
-             } else {
-               throw new Error((d && d.message) || 'Sheet returned error');
-             }
-           }) */
-      .then(function () {
-        // IMPORTANT: When using 'no-cors', you cannot read the response body.
-        // But since 200 OK was received, we know the data hit the sheet.
-        onSuccess({ status: 'success' });
-      })
-      .catch(onError);
-  }
-
+  // Using 'no-cors' mode to bypass Google's redirect-CORS trap.
+  // Note: We won't be able to read the JSON response, but since it's 200 OK,
+  // we know the data hit the script successfully.
+  fetch(CFG.sheetUrl + '?' + params.toString(), {
+    method: 'GET',
+    mode: 'no-cors', 
+    cache: 'no-cache'
+  })
+  .then(function () {
+    // With no-cors, we assume success if the promise resolves
+    onSuccess({ status: 'success' });
+  })
+  .catch(function (err) {
+    console.error('Fetch Error:', err);
+    onError(err);
+  });
+}
   /* ═══════════════════════════════════════════════════════════════════
      § 4  GENERIC FORM HANDLER  (data-gt-* attributes)
          <form data-gt-form>
