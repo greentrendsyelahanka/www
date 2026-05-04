@@ -1635,7 +1635,7 @@
                                     <div class="sk-h2" id="eotp_emp">Enter OTP</div>
                                 </div>
                                 <div class="sk-appbar-section sk-appbar-align-end">
-                                    <button onclick="closeOtp()" title="Close"
+                                    <button onclick="closeResponseModal()" title="Close"
                                         class="sk-button sk-round sk-no-shadow close-modal">
                                         <span class="sk-icons">
                                             <svg width="13" height="13">
@@ -4168,6 +4168,24 @@
                 document.querySelector('.otp-dialog').classList.remove('sk-show');
                 fndailogclose();
             }
+window.closeResponseModal = function() {
+    // 1. Hide the popup wrapper
+    var popup = document.getElementById('dvaMenuContactpopup');
+    if (popup) {
+        popup.classList.remove('sk-show');
+        popup.classList.remove('sk-contact');
+    }
+
+    // 2. Enable scrolling on the background again
+    document.body.classList.remove('sk-no-scroll');
+
+    // 3. Reset the success message so the form is visible if they open it again
+    var msg = document.getElementById('pmsgid');
+    if (msg) msg.classList.remove('sk-show');
+    
+    var contactPanel = document.getElementById('Contact');
+    if (contactPanel) contactPanel.classList.remove('sk-hide');
+};
             function fnchangeno() {
                 document.querySelector('.otp-dialog').classList.remove('sk-show');
                 if (popupContact != "") {
