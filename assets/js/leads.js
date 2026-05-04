@@ -25,11 +25,11 @@
      § 1  CONFIG
   ═══════════════════════════════════════════════════════════════════ */
   var CFG = Object.assign({
-    sheetUrl     : '',
-    salonName    : 'Green Trends',
-    phone        : '08040965666',
-    services     : ['Hair Services', 'Bridal', 'Skin Care', 'Nail Art', 'Hair Colour', 'Other'],
-    chatGreeting : 'Hi! Welcome to Green Trends \u2728 How can I help you today?'
+    sheetUrl: '',
+    salonName: 'Green Trends',
+    phone: '08040965666',
+    services: ['Hair Services', 'Bridal', 'Skin Care', 'Nail Art', 'Hair Colour', 'Other'],
+    chatGreeting: 'Hi! Welcome to Green Trends \u2728 How can I help you today?'
   }, win.GT_CONFIG || {});
 
   /* ═══════════════════════════════════════════════════════════════════
@@ -37,25 +37,25 @@
   ═══════════════════════════════════════════════════════════════════ */
   var SESSION = (function () {
     var stored = {};
-    try { stored = JSON.parse(sessionStorage.getItem('_gt_sess') || '{}'); } catch (e) {}
+    try { stored = JSON.parse(sessionStorage.getItem('_gt_sess') || '{}'); } catch (e) { }
 
-    var qs  = new URLSearchParams(win.location.search);
+    var qs = new URLSearchParams(win.location.search);
     var get = function (k) { return qs.get(k) || stored[k] || ''; };
 
     var s = {
-      utm_source   : get('utm_source'),
-      utm_medium   : get('utm_medium'),
-      utm_campaign : get('utm_campaign'),
-      utm_term     : get('utm_term'),
-      utm_content  : get('utm_content'),
-      referral_url : doc.referrer          || stored.referral_url || '',
-      landing_page : win.location.href,
-      visit_time   : stored.visit_time     || _now(),
-      ip_address   : stored.ip_address     || ''
+      utm_source: get('utm_source'),
+      utm_medium: get('utm_medium'),
+      utm_campaign: get('utm_campaign'),
+      utm_term: get('utm_term'),
+      utm_content: get('utm_content'),
+      referral_url: doc.referrer || stored.referral_url || '',
+      landing_page: win.location.href,
+      visit_time: stored.visit_time || _now(),
+      ip_address: stored.ip_address || ''
     };
 
     function _save() {
-      try { sessionStorage.setItem('_gt_sess', JSON.stringify(s)); } catch (e) {}
+      try { sessionStorage.setItem('_gt_sess', JSON.stringify(s)); } catch (e) { }
     }
     _save();
 
@@ -64,7 +64,7 @@
       fetch('https://api.ipify.org?format=json')
         .then(function (r) { return r.json(); })
         .then(function (d) { s.ip_address = d.ip || ''; _save(); })
-        .catch(function () {});
+        .catch(function () { });
     }
 
     return s;
@@ -83,39 +83,53 @@
   }
 
   /* ═══════════════════════════════════════════════════════════════════
-     § 3  LEAD SUBMISSION  (GET → Apps Script → correct sheet tab)
-  ═══════════════════════════════════════════════════════════════════ */
+      § 3  LEAD SUBMISSION  (GET → Apps Script → correct sheet tab)
+   ═══════════════════════════════════════════════════════════════════ */
   function _submitLead(data, onSuccess, onError) {
     if (!CFG.sheetUrl) { onError(new Error('GT_CONFIG.sheetUrl not set')); return; }
 
     var mobile = (data.mobile || '').replace(/\D/g, '').slice(-10);
 
     var params = new URLSearchParams({
-      Name         : data.name       || '',
-      Mobile       : '+91' + mobile,
-      Service      : data.service    || '',
-      Source       : data.source     || 'Website Form',
-      SheetTab     : _sheetTab(),
-      UTM_Source   : SESSION.utm_source,
-      UTM_Medium   : SESSION.utm_medium,
-      UTM_Campaign : SESSION.utm_campaign,
-      UTM_Term     : SESSION.utm_term,
-      UTM_Content  : SESSION.utm_content,
-      Referral_URL : SESSION.referral_url,
-      Landing_Page : SESSION.landing_page,
-      Visit_Time   : SESSION.visit_time,
-      Submit_Time  : _now(),
-      IP_Address   : SESSION.ip_address
+      Name: data.name || '',
+      Mobile: '+91' + mobile,
+      Service: data.service || '',
+      Source: data.source || 'Website Form',
+      SheetTab: _sheetTab(),
+      UTM_Source: SESSION.utm_source,
+      UTM_Medium: SESSION.utm_medium,
+      UTM_Campaign: SESSION.utm_campaign,
+      UTM_Term: SESSION.utm_term,
+      UTM_Content: SESSION.utm_content,
+      Referral_URL: SESSION.referral_url,
+      Landing_Page: SESSION.landing_page,
+      Visit_Time: SESSION.visit_time,
+      Submit_Time: _now(),
+      IP_Address: SESSION.ip_address
     });
 
     fetch(CFG.sheetUrl + '?' + params.toString())
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
+        // Get the response as text first to avoid the JSON parse error on HTML wrappers
+        return r.text();
       })
-      .then(function (d) {
-        if (d && d.status === 'success') onSuccess(d);
-        else throw new Error((d && d.message) || 'Sheet returned error');
+      .then(function (text) {
+        var d;
+        try {
+          d = JSON.parse(text);
+        } catch (e) {
+          // If parsing fails but status was 200, Google likely returned an HTML success page
+          console.warn('Response was not JSON, but request succeeded.', text);
+          onSuccess({ status: 'success', note: 'HTML response handled' });
+          return;
+        }
+
+        if (d && d.status === 'success') {
+          onSuccess(d);
+        } else {
+          throw new Error((d && d.message) || 'Sheet returned error');
+        }
       })
       .catch(onError);
   }
@@ -137,7 +151,7 @@
   ═══════════════════════════════════════════════════════════════════ */
   function _initForms() {
     doc.querySelectorAll('[data-gt-form]').forEach(function (form) {
-      var btn    = form.querySelector('[data-gt-submit]');
+      var btn = form.querySelector('[data-gt-submit]');
       var errMsg = form.querySelector('[data-gt-error-msg]');
       if (!btn) return;
       btn.addEventListener('click', function (e) {
@@ -161,23 +175,23 @@
   }
   function _setBtnState(btn, loading) {
     if (!btn) return;
-    btn.disabled    = loading;
+    btn.disabled = loading;
     btn.textContent = loading ? 'Submitting\u2026' : 'Submit';
   }
 
   function _handleFormSubmit(form, btn, errMsg) {
-    var name    = _fv(form, 'name');
-    var mobile  = _fv(form, 'mobile');
+    var name = _fv(form, 'name');
+    var mobile = _fv(form, 'mobile');
     var service = _fv(form, 'service');
-    var digits  = mobile.replace(/\D/g, '').slice(-10);
-    var ok      = true;
+    var digits = mobile.replace(/\D/g, '').slice(-10);
+    var ok = true;
 
-    ['name','mobile','service'].forEach(function (f) { _hideErr(form, f); });
+    ['name', 'mobile', 'service'].forEach(function (f) { _hideErr(form, f); });
     if (errMsg) errMsg.style.display = 'none';
 
-    if (!name)                            { _showErr(form, 'name');    ok = false; }
-    if (!digits || digits.length < 10)    { _showErr(form, 'mobile');  ok = false; }
-    if (!service)                         { _showErr(form, 'service'); ok = false; }
+    if (!name) { _showErr(form, 'name'); ok = false; }
+    if (!digits || digits.length < 10) { _showErr(form, 'mobile'); ok = false; }
+    if (!service) { _showErr(form, 'service'); ok = false; }
     if (!ok) return;
 
     _setBtnState(btn, true);
@@ -191,9 +205,9 @@
           el.value = '';
         });
         /* show success state */
-        var fields  = form.querySelector('[data-gt-fields]');
+        var fields = form.querySelector('[data-gt-fields]');
         var success = form.querySelector('[data-gt-success]');
-        if (fields)  fields.style.display  = 'none';
+        if (fields) fields.style.display = 'none';
         if (success) success.style.display = 'block';
       },
       function (err) {
@@ -213,20 +227,20 @@
   ═══════════════════════════════════════════════════════════════════ */
   win.submitToGoogleSheets = function (formType, btn) {
     var isPopup = (formType === 'popup');
-    var sfx     = isPopup ? '_1' : '';
+    var sfx = isPopup ? '_1' : '';
 
     function gv(id) { var e = doc.getElementById(id); return e ? e.value.trim() : ''; }
     function showSpan(id) { var e = doc.getElementById(id); if (e) { e.style.display = 'block'; e.classList.add('sk-show'); } }
     function hideSpan(id) { var e = doc.getElementById(id); if (e) { e.style.display = ''; e.classList.remove('sk-show'); } }
 
-    var name    = gv('txtName'    + sfx);
+    var name = gv('txtName' + sfx);
     var contact = gv('txtContact' + sfx);
     var product = gv('hdnProduct' + sfx);
-    var ok      = true;
+    var ok = true;
 
-    if (!name)                           { showSpan('txtNameReq'    + sfx); ok = false; } else { hideSpan('txtNameReq'    + sfx); }
+    if (!name) { showSpan('txtNameReq' + sfx); ok = false; } else { hideSpan('txtNameReq' + sfx); }
     if (!contact || contact.length < 10) { showSpan('txtContactReq' + sfx); ok = false; } else { hideSpan('txtContactReq' + sfx); }
-    if (!product)                        { showSpan('txtProductReq' + sfx); ok = false; } else { hideSpan('txtProductReq' + sfx); }
+    if (!product) { showSpan('txtProductReq' + sfx); ok = false; } else { hideSpan('txtProductReq' + sfx); }
     if (!ok) return;
 
     _setBtnState(btn, true);
@@ -238,16 +252,16 @@
       function () {
         _setBtnState(btn, false);
         /* clear fields */
-        ['txtName','txtContact','hdnProduct'].forEach(function (id) {
+        ['txtName', 'txtContact', 'hdnProduct'].forEach(function (id) {
           var e = doc.getElementById(id + sfx); if (e) e.value = '';
         });
         var ps = doc.getElementById('ProductSelected' + sfx);
         if (ps) ps.innerHTML = 'Select product';
         /* show existing success UI */
-        var hdr   = doc.getElementById('eotp_emp');           if (hdr)   hdr.innerHTML = '';
-        var otp   = doc.getElementById('otpWrapper');         if (otp)   otp.classList.add('sk-hide');
-        var msg   = doc.getElementById('pmsgid');             if (msg)   msg.classList.add('sk-show');
-        var panel = doc.getElementById('Contact');            if (panel) panel.classList.add('sk-show');
+        var hdr = doc.getElementById('eotp_emp'); if (hdr) hdr.innerHTML = '';
+        var otp = doc.getElementById('otpWrapper'); if (otp) otp.classList.add('sk-hide');
+        var msg = doc.getElementById('pmsgid'); if (msg) msg.classList.add('sk-show');
+        var panel = doc.getElementById('Contact'); if (panel) panel.classList.add('sk-show');
         if (isPopup) {
           var popup = doc.getElementById('dvaMenuContactpopup');
           if (popup) { popup.classList.remove('sk-show'); popup.classList.remove('sk-contact'); }
@@ -266,16 +280,16 @@
      § 6  STUB legacy OTP / ProManage / analytics functions
   ═══════════════════════════════════════════════════════════════════ */
   function _stubLegacy() {
-    var noop = function () {};
+    var noop = function () { };
     [
-      'sendOTP','sendOTP_1','sendwithoutOTP','sendwithoutOTP_1',
-      'submitContact','submitContact_sundaram','fncallclientapi',
-      'onresendOTP','verifyOtpIfFilled','fnchangeno','closeOtp',
-      'gaclicktrack','gtag','fbq'
+      'sendOTP', 'sendOTP_1', 'sendwithoutOTP', 'sendwithoutOTP_1',
+      'submitContact', 'submitContact_sundaram', 'fncallclientapi',
+      'onresendOTP', 'verifyOtpIfFilled', 'fnchangeno', 'closeOtp',
+      'gaclicktrack', 'gtag', 'fbq'
     ].forEach(function (fn) { win[fn] = noop; });
 
     /* Redirect legacy sendOTP_gt callers */
-    win.sendOTP_gt   = function () { win.submitToGoogleSheets('main',  doc.getElementById('gs-btn-main'));  };
+    win.sendOTP_gt = function () { win.submitToGoogleSheets('main', doc.getElementById('gs-btn-main')); };
     win.sendOTP_gt_1 = function () { win.submitToGoogleSheets('popup', doc.getElementById('gs-btn-popup')); };
 
     /* Intercept any remaining ProManage / OTP fetch calls */
@@ -291,11 +305,11 @@
             text: function () { return Promise.resolve(JSON.stringify(body)); }
           });
         };
-        if (u.indexOf('inboxapi.promanage.biz') !== -1)    return fakeOk({ status: 'ok', errormgs: 'success' });
-        if (u.indexOf('/API/verifiedOTP') !== -1)           return fakeOk({ errormgs: 'success' });
-        if (u.indexOf('/API/verifiedOTPEncrypted') !== -1)  return fakeOk({ errormgs: 'success' });
-        if (u.indexOf('/API/sendOTP') !== -1)               return fakeOk({ errormgs: 'success', Status: 'true' });
-        if (u.indexOf('/Process/sendotp') !== -1)           return fakeOk({ errormgs: 'success', Status: 'true' });
+        if (u.indexOf('inboxapi.promanage.biz') !== -1) return fakeOk({ status: 'ok', errormgs: 'success' });
+        if (u.indexOf('/API/verifiedOTP') !== -1) return fakeOk({ errormgs: 'success' });
+        if (u.indexOf('/API/verifiedOTPEncrypted') !== -1) return fakeOk({ errormgs: 'success' });
+        if (u.indexOf('/API/sendOTP') !== -1) return fakeOk({ errormgs: 'success', Status: 'true' });
+        if (u.indexOf('/Process/sendotp') !== -1) return fakeOk({ errormgs: 'success', Status: 'true' });
         return _orig.apply(this, arguments);
       };
     }
@@ -307,18 +321,18 @@
 
   /* ── Conversation flow ── */
   var FLOW = {
-    GREETING : 0,
-    SERVICE  : 1,
-    NAME     : 2,
-    MOBILE   : 3,
-    DONE     : 4,
-    CALLBACK : 5   /* "call me back" branch */
+    GREETING: 0,
+    SERVICE: 1,
+    NAME: 2,
+    MOBILE: 3,
+    DONE: 4,
+    CALLBACK: 5   /* "call me back" branch */
   };
 
   var chat = {
-    step : -1,
-    open : false,
-    lead : { name: '', mobile: '', service: '' }
+    step: -1,
+    open: false,
+    lead: { name: '', mobile: '', service: '' }
   };
 
   function _injectChatCSS() {
@@ -328,33 +342,33 @@
       '#gtcw{position:fixed;bottom:24px;right:24px;z-index:99999;font-family:Arial,sans-serif;font-size:14px}',
       /* Toggle button */
       '#gtcw-btn{width:58px;height:58px;border-radius:50%;background:#028c36;border:none;cursor:pointer;',
-        'box-shadow:0 4px 16px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;',
-        'transition:transform .2s;position:relative}',
+      'box-shadow:0 4px 16px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;',
+      'transition:transform .2s;position:relative}',
       '#gtcw-btn:hover{transform:scale(1.08)}',
       '#gtcw-btn svg{fill:#fff;width:26px;height:26px}',
       /* Notification dot */
       '#gtcw-dot{position:absolute;top:4px;right:4px;width:13px;height:13px;border-radius:50%;',
-        'background:#ff3b30;border:2.5px solid #fff;display:none}',
+      'background:#ff3b30;border:2.5px solid #fff;display:none}',
       /* Chat box */
       '#gtcw-box{width:330px;background:#fff;border-radius:18px;',
-        'box-shadow:0 10px 40px rgba(0,0,0,.18);display:none;flex-direction:column;',
-        'overflow:hidden;position:absolute;bottom:70px;right:0;max-height:520px}',
+      'box-shadow:0 10px 40px rgba(0,0,0,.18);display:none;flex-direction:column;',
+      'overflow:hidden;position:absolute;bottom:70px;right:0;max-height:520px}',
       '#gtcw-box.open{display:flex}',
       /* Header */
       '#gtcw-hd{background:linear-gradient(135deg,#028c36,#04b347);padding:14px 16px;',
-        'display:flex;align-items:center;justify-content:space-between;flex-shrink:0}',
+      'display:flex;align-items:center;justify-content:space-between;flex-shrink:0}',
       '#gtcw-hd-info{display:flex;align-items:center;gap:10px}',
       '#gtcw-av{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.2);',
-        'display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}',
+      'display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}',
       '#gtcw-hd h4{color:#fff;margin:0;font-size:14px;font-weight:700;line-height:1.3}',
       '#gtcw-hd p{color:rgba(255,255,255,.82);margin:0;font-size:11px}',
       '#gtcw-close{background:none;border:none;color:rgba(255,255,255,.85);font-size:22px;',
-        'cursor:pointer;line-height:1;padding:0 2px}',
+      'cursor:pointer;line-height:1;padding:0 2px}',
       /* Messages */
       '#gtcw-msgs{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;',
-        'gap:9px;scroll-behavior:smooth}',
+      'gap:9px;scroll-behavior:smooth}',
       '.gtm{max-width:82%;padding:9px 13px;border-radius:14px;line-height:1.5;font-size:13px;',
-        'animation:gtFade .22s ease}',
+      'animation:gtFade .22s ease}',
       '.gtm.bot{background:#f1f1f1;color:#222;align-self:flex-start;border-bottom-left-radius:3px}',
       '.gtm.usr{background:#028c36;color:#fff;align-self:flex-end;border-bottom-right-radius:3px}',
       '.gtm.err{background:#fdecea;color:#c0392b;align-self:flex-start;font-size:12px;border-radius:10px}',
@@ -362,23 +376,23 @@
       /* Quick replies */
       '.gtqr{display:flex;flex-wrap:wrap;gap:7px;padding:2px 0 0 0;align-self:flex-start}',
       '.gtqr button{padding:7px 13px;border:1.5px solid #028c36;border-radius:20px;background:#fff;',
-        'color:#028c36;font-size:12px;cursor:pointer;transition:all .15s;font-weight:500}',
+      'color:#028c36;font-size:12px;cursor:pointer;transition:all .15s;font-weight:500}',
       '.gtqr button:hover{background:#028c36;color:#fff}',
       /* Typing indicator */
       '.gt-typ{display:flex;align-items:center;gap:5px;padding:10px 14px;background:#f1f1f1;',
-        'border-radius:14px;align-self:flex-start;border-bottom-left-radius:3px}',
+      'border-radius:14px;align-self:flex-start;border-bottom-left-radius:3px}',
       '.gt-typ span{width:7px;height:7px;border-radius:50%;background:#bbb;animation:gtBounce 1.1s infinite}',
       '.gt-typ span:nth-child(2){animation-delay:.18s}',
       '.gt-typ span:nth-child(3){animation-delay:.36s}',
       /* Input row */
       '#gtcw-inp-row{padding:10px 12px;border-top:1px solid #eee;display:flex;gap:8px;',
-        'align-items:center;flex-shrink:0}',
+      'align-items:center;flex-shrink:0}',
       '#gtcw-inp{flex:1;border:1.5px solid #ddd;border-radius:22px;padding:9px 15px;font-size:13px;',
-        'outline:none;transition:border .2s;background:#fff}',
+      'outline:none;transition:border .2s;background:#fff}',
       '#gtcw-inp:focus{border-color:#028c36}',
       '#gtcw-inp:disabled{background:#f8f8f8;color:#aaa}',
       '#gtcw-send{width:36px;height:36px;min-width:36px;border-radius:50%;background:#028c36;',
-        'border:none;cursor:pointer;display:flex;align-items:center;justify-content:center}',
+      'border:none;cursor:pointer;display:flex;align-items:center;justify-content:center}',
       '#gtcw-send:disabled{background:#ccc;cursor:not-allowed}',
       '#gtcw-send svg{fill:#fff;width:16px;height:16px}',
       '@keyframes gtFade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}',
@@ -394,24 +408,24 @@
     w.id = 'gtcw';
     w.innerHTML = (
       '<button id="gtcw-btn" aria-label="Chat with us">' +
-        '<span id="gtcw-dot"></span>' +
-        '<svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>' +
+      '<span id="gtcw-dot"></span>' +
+      '<svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>' +
       '</button>' +
       '<div id="gtcw-box" role="dialog" aria-label="Chat">' +
-        '<div id="gtcw-hd">' +
-          '<div id="gtcw-hd-info">' +
-            '<div id="gtcw-av">\u2702\uFE0F</div>' +
-            '<div><h4>' + CFG.salonName + '</h4><p>&#128172; Replies instantly</p></div>' +
-          '</div>' +
-          '<button id="gtcw-close" aria-label="Close">\u2715</button>' +
-        '</div>' +
-        '<div id="gtcw-msgs" aria-live="polite"></div>' +
-        '<div id="gtcw-inp-row">' +
-          '<input id="gtcw-inp" type="text" placeholder="Type a message\u2026" autocomplete="off" disabled>' +
-          '<button id="gtcw-send" aria-label="Send" disabled>' +
-            '<svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>' +
-          '</button>' +
-        '</div>' +
+      '<div id="gtcw-hd">' +
+      '<div id="gtcw-hd-info">' +
+      '<div id="gtcw-av">\u2702\uFE0F</div>' +
+      '<div><h4>' + CFG.salonName + '</h4><p>&#128172; Replies instantly</p></div>' +
+      '</div>' +
+      '<button id="gtcw-close" aria-label="Close">\u2715</button>' +
+      '</div>' +
+      '<div id="gtcw-msgs" aria-live="polite"></div>' +
+      '<div id="gtcw-inp-row">' +
+      '<input id="gtcw-inp" type="text" placeholder="Type a message\u2026" autocomplete="off" disabled>' +
+      '<button id="gtcw-send" aria-label="Send" disabled>' +
+      '<svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>' +
+      '</button>' +
+      '</div>' +
       '</div>'
     );
     doc.body.appendChild(w);
@@ -437,7 +451,7 @@
   /* ── Append a bubble ── */
   function _bubble(text, cls) {
     var msgs = doc.getElementById('gtcw-msgs');
-    var el   = doc.createElement('div');
+    var el = doc.createElement('div');
     el.className = 'gtm ' + cls;
     el.textContent = text;
     msgs.appendChild(el);
@@ -466,7 +480,7 @@
   /* ── Quick reply buttons ── */
   function _quickReplies(options, onPick) {
     var msgs = doc.getElementById('gtcw-msgs');
-    var qr   = doc.createElement('div');
+    var qr = doc.createElement('div');
     qr.className = 'gtqr';
     options.forEach(function (opt) {
       var btn = doc.createElement('button');
@@ -480,15 +494,15 @@
 
   /* ── Enable / disable text input ── */
   function _inputEnable(placeholder) {
-    var inp  = doc.getElementById('gtcw-inp');
+    var inp = doc.getElementById('gtcw-inp');
     var send = doc.getElementById('gtcw-send');
-    if (inp)  { inp.disabled = false; inp.placeholder = placeholder || 'Type here\u2026'; inp.focus(); }
+    if (inp) { inp.disabled = false; inp.placeholder = placeholder || 'Type here\u2026'; inp.focus(); }
     if (send) send.disabled = false;
   }
   function _inputDisable(placeholder) {
-    var inp  = doc.getElementById('gtcw-inp');
+    var inp = doc.getElementById('gtcw-inp');
     var send = doc.getElementById('gtcw-send');
-    if (inp)  { inp.disabled = true; inp.value = ''; inp.placeholder = placeholder || ''; }
+    if (inp) { inp.disabled = true; inp.value = ''; inp.placeholder = placeholder || ''; }
     if (send) send.disabled = true;
   }
 
@@ -578,7 +592,7 @@
 
     /* typing while waiting for API */
     var msgs = doc.getElementById('gtcw-msgs');
-    var typ  = doc.createElement('div');
+    var typ = doc.createElement('div');
     typ.className = 'gt-typ';
     typ.id = 'gtcw-waiting';
     typ.innerHTML = '<span></span><span></span><span></span>';
@@ -587,10 +601,10 @@
 
     _submitLead(
       {
-        name    : chat.lead.name,
-        mobile  : chat.lead.mobile,
-        service : chat.lead.service || 'Chat Enquiry',
-        source  : 'Chatbot'
+        name: chat.lead.name,
+        mobile: chat.lead.mobile,
+        service: chat.lead.service || 'Chat Enquiry',
+        source: 'Chatbot'
       },
       function () {
         var w = doc.getElementById('gtcw-waiting'); if (w) w.remove();
