@@ -4169,22 +4169,38 @@
                 fndailogclose();
             }
 window.closeResponseModal = function() {
-    // 1. Hide the popup wrapper
+    // 1. Target the actual ID in your HTML ("Contact")
+    var mainWrapper = document.getElementById('Contact');
+    if (mainWrapper) {
+        mainWrapper.classList.remove('sk-show');
+    }
+
+    // 2. Clear any lingering popup wrappers
     var popup = document.getElementById('dvaMenuContactpopup');
     if (popup) {
         popup.classList.remove('sk-show');
-        popup.classList.remove('sk-contact');
     }
 
-    // 2. Enable scrolling on the background again
-    document.body.classList.remove('sk-no-scroll');
+    // 3. Remove from any element with the otp-dialog class (just to be safe)
+    var otpDialog = document.querySelector('.otp-dialog');
+    if (otpDialog) {
+        otpDialog.classList.remove('sk-show');
+    }
 
-    // 3. Reset the success message so the form is visible if they open it again
-    var msg = document.getElementById('pmsgid');
-    if (msg) msg.classList.remove('sk-show');
+    // 4. Reset the success message/panel visibility for the next visit
+    var successMsg = document.getElementById('pmsgid');
+    if (successMsg) {
+        successMsg.classList.remove('sk-show');
+    }
+
+    // 5. Restore page scrolling
+    document.body.classList.remove('sk-no-scroll');
     
-    var contactPanel = document.getElementById('Contact');
-    if (contactPanel) contactPanel.classList.remove('sk-hide');
+    // 6. Support for the backdrop if it's separate
+    var backdrop = document.querySelector('.sk-backdrop');
+    if (backdrop) {
+        backdrop.style.display = 'none'; // Or remove a show class if applicable
+    }
 };
             function fnchangeno() {
                 document.querySelector('.otp-dialog').classList.remove('sk-show');
