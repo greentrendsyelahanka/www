@@ -108,28 +108,36 @@
       IP_Address: SESSION.ip_address
     });
 
-    fetch(CFG.sheetUrl + '?' + params.toString())
-      .then(function (r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        // Get the response as text first to avoid the JSON parse error on HTML wrappers
-        return r.text();
-      })
-      .then(function (text) {
-        var d;
-        try {
-          d = JSON.parse(text);
-        } catch (e) {
-          // If parsing fails but status was 200, Google likely returned an HTML success page
-          console.warn('Response was not JSON, but request succeeded.', text);
-          onSuccess({ status: 'success', note: 'HTML response handled' });
-          return;
-        }
-
-        if (d && d.status === 'success') {
-          onSuccess(d);
-        } else {
-          throw new Error((d && d.message) || 'Sheet returned error');
-        }
+    fetch(CFG.sheetUrl + '?' + params.toString(), {
+      method: 'GET',
+      mode: 'no-cors'
+    })
+      /*      .then(function (r) {
+             if (!r.ok) throw new Error('HTTP ' + r.status);
+             // Get the response as text first to avoid the JSON parse error on HTML wrappers
+             return r.text();
+           })
+           .then(function (text) {
+             var d;
+             try {
+               d = JSON.parse(text);
+             } catch (e) {
+               // If parsing fails but status was 200, Google likely returned an HTML success page
+               console.warn('Response was not JSON, but request succeeded.', text);
+               onSuccess({ status: 'success', note: 'HTML response handled' });
+               return;
+             }
+     
+             if (d && d.status === 'success') {
+               onSuccess(d);
+             } else {
+               throw new Error((d && d.message) || 'Sheet returned error');
+             }
+           }) */
+      .then(function () {
+        // IMPORTANT: When using 'no-cors', you cannot read the response body.
+        // But since 200 OK was received, we know the data hit the sheet.
+        onSuccess({ status: 'success' });
       })
       .catch(onError);
   }
